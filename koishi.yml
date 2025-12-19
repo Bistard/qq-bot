@@ -1,0 +1,13 @@
+# 可选：Koishi 配置文件，便于在需要时使用 koishi CLI
+host: 0.0.0.0
+port: ${PORT-5140}
+prefix: ${BOT_PREFIX-/}
+plugins:
+  adapter-onebot:
+    protocol: ${ONEBOT_PROTOCOL-ws}
+    selfId: ${BOT_SELF_ID}
+    endpoint: ${ONEBOT_WS_URL}
+    token: ${ONEBOT_ACCESS_TOKEN}
+  console:
+    open: false
+    port: ${CONSOLE_PORT-5300}
