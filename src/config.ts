@@ -2,6 +2,7 @@ import path from 'path'
 import { BotConfig } from './types'
 import { Logger } from './logger'
 import { parseList, parsePatterns, toNumber } from './utils'
+import { PLAIN_TEXT_INSTRUCTION } from './constants'
 
 const DEFAULT_PERSONAS: Record<string, string> = {
   default: '你是一个由 DeepSeek 模型驱动的 QQ 助手，回答要准确、简洁，默认使用中文，并在需要时给出简要步骤。',
@@ -15,6 +16,13 @@ export function loadConfig(logger: Logger): BotConfig {
   const denylistSeed = new Set(parseList(process.env.DENYLIST))
   const adminIds = new Set(parseList(process.env.ADMIN_IDS))
   const personaPresets = { ...DEFAULT_PERSONAS }
+  const forcePlainText = process.env.DEEPSEEK_FORCE_PLAIN === 'true'
+  const baseSystemPrompt =
+    process.env.SYSTEM_PROMPT || DEFAULT_PERSONAS['default']
+  const systemPrompt =
+    forcePlainText && !baseSystemPrompt.includes(PLAIN_TEXT_INSTRUCTION)
+      ? `${baseSystemPrompt.trim()} ${PLAIN_TEXT_INSTRUCTION}`
+      : baseSystemPrompt
 
   try {
     if (process.env.PERSONA_PRESETS) {
@@ -43,10 +51,9 @@ export function loadConfig(logger: Logger): BotConfig {
       temperature: toNumber(process.env.DEEPSEEK_TEMPERATURE, 0.8),
       maxTokens: toNumber(process.env.DEEPSEEK_MAX_TOKENS, 2048),
       summaryMaxTokens: toNumber(process.env.DEEPSEEK_SUMMARY_TOKENS, 512),
-      systemPrompt:
-        process.env.SYSTEM_PROMPT ||
-        '你是 QQ 群的智能助手，保持礼貌、简洁，拒绝违法违规和敏感内容，必要时提醒用户风险。',
+      systemPrompt,
       timeoutMs: toNumber(process.env.DEEPSEEK_TIMEOUT_MS, 30000),
+      forcePlainText,
     },
     admins: adminIds,
     allowlistSeed,

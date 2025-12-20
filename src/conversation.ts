@@ -2,6 +2,7 @@ import { IStore } from './store'
 import { BotConfig, ChatMessage } from './types'
 import { ILLMClient } from './deepseek'
 import { Logger } from './logger'
+import { PLAIN_TEXT_INSTRUCTION } from './constants'
 
 interface ConversationState {
   history: ChatMessage[]
@@ -51,6 +52,10 @@ export class ConversationManager {
       messages.push({ role: 'system', content: `对话摘要：${state.summary}` })
     }
 
+    if (this.config.deepseek.forcePlainText) {
+      messages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION })
+    }
+
     const recent = state.history.slice(-this.config.maxContextMessages)
     messages.push(...recent)
 
@@ -78,8 +83,11 @@ export class ConversationManager {
 
     const summaryMessages: ChatMessage[] = [
       { role: 'system', content: '请用中文总结以下对话，保留关键事实、指令与上下文，不超过200字。' },
-      { role: 'user', content: serialized },
     ]
+    if (this.config.deepseek.forcePlainText) {
+      summaryMessages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION })
+    }
+    summaryMessages.push({ role: 'user', content: serialized })
 
     try {
       const summary = await this.callLLM(

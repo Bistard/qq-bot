@@ -1,0 +1,1 @@
+export const PLAIN_TEXT_INSTRUCTION = '请使用纯文本输出！不要使用任何 Markdown等标记语言；可以正常使用列表、代码块。'

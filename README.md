@@ -46,6 +46,7 @@
 
 ## 环境变量要点
 - `DEEPSEEK_API_KEY`（必填）、`DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`。
+- `DEEPSEEK_FORCE_PLAIN=true` 时，会在 `SYSTEM_PROMPT` 末尾自动追加“请用纯文本输出，不要使用 Markdown/代码块/列表符号”来约束回复格式。
 - `ONEBOT_WS_URL`（默认 `ws://napcat:3001`）、`BOT_SELF_ID`、`ONEBOT_ACCESS_TOKEN`（若有）、`ONEBOT_RECONNECT_MS`。
 - `ADMIN_IDS`、`WHITELIST_MODE`、`BLOCKED_PATTERNS`、`USER_RATE_LIMIT` 等控制项见 `.env.example`。
 - `LOG_PROMPTS` / `LOG_RESPONSES` 控制是否在日志中打印完整提示词与模型回复（默认不打印）。
