@@ -1,142 +1,157 @@
-import { IStore } from './store'
-import { BotConfig, ChatMessage } from './types'
-import { ILLMClient } from './deepseek'
-import { Logger } from './logger'
-import { PLAIN_TEXT_INSTRUCTION } from './constants'
+import { IStore } from './store';
+import { BotConfig, ChatMessage } from './types';
+import { ILLMClient } from './deepseek';
+import { Logger } from './logger';
+import { PLAIN_TEXT_INSTRUCTION } from './constants';
 
 interface ConversationState {
-  history: ChatMessage[]
-  summary?: string
-  persona?: string
+	history: ChatMessage[];
+	summary?: string;
+	persona?: string;
 }
 
 export class ConversationManager {
-  private sessions = new Map<string, ConversationState>()
+	private sessions = new Map<string, ConversationState>();
 
-  constructor(private config: BotConfig, private deepseek: ILLMClient, private store: IStore, private logger: Logger) {}
+	constructor(
+		private config: BotConfig,
+		private deepseek: ILLMClient,
+		private store: IStore,
+		private logger: Logger,
+	) {}
 
-  get activeSessions() {
-    return this.sessions.size
-  }
+	get activeSessions() {
+		return this.sessions.size;
+	}
 
-  reset(sessionKey: string) {
-    this.sessions.delete(sessionKey)
-  }
+	reset(sessionKey: string) {
+		this.sessions.delete(sessionKey);
+	}
 
-  setPersona(sessionKey: string, persona: string | undefined) {
-    const state = this.sessions.get(sessionKey) ?? { history: [] }
-    state.persona = persona
-    this.sessions.set(sessionKey, state)
-  }
+	setPersona(sessionKey: string, persona: string | undefined) {
+		const state = this.sessions.get(sessionKey) ?? { history: [] };
+		state.persona = persona;
+		this.sessions.set(sessionKey, state);
+	}
 
-  getPersona(sessionKey: string) {
-    return this.sessions.get(sessionKey)?.persona
-  }
+	getPersona(sessionKey: string) {
+		return this.sessions.get(sessionKey)?.persona;
+	}
 
-  async reply(sessionKey: string, userText: string, options?: { deep?: boolean }): Promise<string> {
-    const state = this.sessions.get(sessionKey) ?? { history: [] }
-    const deepMode = options?.deep ?? false
+	async reply(
+		sessionKey: string,
+		userText: string,
+		options?: { deep?: boolean },
+	): Promise<string> {
+		const state = this.sessions.get(sessionKey) ?? { history: [] };
+		const deepMode = options?.deep ?? false;
 
-    state.history.push({ role: 'user', content: userText })
+		state.history.push({ role: 'user', content: userText });
 
-    if (state.history.length > this.config.summaryTrigger) {
-      await this.summarize(sessionKey, state)
-    }
+		if (state.history.length > this.config.summaryTrigger) {
+			await this.summarize(sessionKey, state);
+		}
 
-    const messages: ChatMessage[] = [{ role: 'system', content: this.config.deepseek.systemPrompt }]
+		const messages: ChatMessage[] = [
+			{ role: 'system', content: this.config.deepseek.systemPrompt },
+		];
 
-    if (state.persona && this.config.personaPresets[state.persona]) {
-      messages.push({ role: 'system', content: this.config.personaPresets[state.persona] })
-    }
+		if (state.persona && this.config.personaPresets[state.persona]) {
+			messages.push({ role: 'system', content: this.config.personaPresets[state.persona] });
+		}
 
-    if (state.summary) {
-      messages.push({ role: 'system', content: `对话摘要：${state.summary}` })
-    }
+		if (state.summary) {
+			messages.push({ role: 'system', content: `对话摘要：${state.summary}` });
+		}
 
-    if (this.config.deepseek.forcePlainText) {
-      messages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION })
-    }
+		if (this.config.deepseek.forcePlainText) {
+			messages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION });
+		}
 
-    if (deepMode) {
-      messages.push({
-        role: 'system',
-        content: '请进行深入思考：先梳理背景与关键信息，再分步骤推理，给出原因、方案与利弊，最后总结明确结论。',
-      })
-    }
+		if (deepMode) {
+			messages.push({
+				role: 'system',
+				content:
+					'请进行深入思考：先梳理背景与关键信息，再分步骤推理，给出原因、方案与利弊，最后总结明确结论。',
+			});
+		}
 
-    const recent = state.history.slice(-this.config.maxContextMessages)
-    messages.push(...recent)
+		const recent = state.history.slice(-this.config.maxContextMessages);
+		messages.push(...recent);
 
-    const llmOptions = deepMode
-      ? {
-          maxTokens: this.config.deepseek.maxTokens,
-          temperature: Math.max(this.config.deepseek.temperature - 0.3, 0),
-          model: this.config.deepseek.reasonerModel || this.config.deepseek.model,
-        }
-      : undefined
+		const llmOptions = deepMode
+			? {
+					maxTokens: this.config.deepseek.maxTokens,
+					temperature: Math.max(this.config.deepseek.temperature - 0.3, 0),
+					model: this.config.deepseek.reasonerModel || this.config.deepseek.model,
+			  }
+			: undefined;
 
-    const context = deepMode ? `reply:deep:${sessionKey}` : `reply:${sessionKey}`
-    const result = await this.callLLM(messages, llmOptions, context)
+		const context = deepMode ? `reply:deep:${sessionKey}` : `reply:${sessionKey}`;
+		const result = await this.callLLM(messages, llmOptions, context);
 
-    state.history.push({ role: 'assistant', content: result.text })
-    if (state.history.length > this.config.maxContextMessages * 2) {
-      state.history = state.history.slice(-this.config.maxContextMessages)
-    }
+		state.history.push({ role: 'assistant', content: result.text });
+		if (state.history.length > this.config.maxContextMessages * 2) {
+			state.history = state.history.slice(-this.config.maxContextMessages);
+		}
 
-    this.sessions.set(sessionKey, state)
+		this.sessions.set(sessionKey, state);
 
-    if (result.usage) {
-      await this.store.recordUsage(result.usage)
-    }
+		if (result.usage) {
+			await this.store.recordUsage(result.usage);
+		}
 
-    return result.text
-  }
+		return result.text;
+	}
 
-  private async summarize(sessionKey: string, state: ConversationState) {
-    const serialized = state.history
-      .slice(-this.config.summaryTrigger)
-      .map((item) => `${item.role}: ${item.content}`)
-      .join('\n')
+	private async summarize(sessionKey: string, state: ConversationState) {
+		const serialized = state.history
+			.slice(-this.config.summaryTrigger)
+			.map((item) => `${item.role}: ${item.content}`)
+			.join('\n');
 
-    const summaryMessages: ChatMessage[] = [
-      { role: 'system', content: '请用中文总结以下对话，保留关键事实、指令与上下文，不超过200字。' },
-    ]
-    if (this.config.deepseek.forcePlainText) {
-      summaryMessages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION })
-    }
-    summaryMessages.push({ role: 'user', content: serialized })
+		const summaryMessages: ChatMessage[] = [
+			{
+				role: 'system',
+				content: '请用中文总结以下对话，保留关键事实、指令与上下文，不超过200字。',
+			},
+		];
+		if (this.config.deepseek.forcePlainText) {
+			summaryMessages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION });
+		}
+		summaryMessages.push({ role: 'user', content: serialized });
 
-    try {
-      const summary = await this.callLLM(
-        summaryMessages,
-        {
-          maxTokens: this.config.deepseek.summaryMaxTokens,
-          temperature: 0.2,
-        },
-        `summary:${sessionKey}`,
-      )
-      if (summary.usage) {
-        await this.store.recordUsage(summary.usage)
-      }
-      state.summary = summary.text
-      state.history = state.history.slice(-Math.floor(this.config.maxContextMessages / 2))
-    } catch (err) {
-      this.logger.warn('生成摘要失败，将跳过：%s', err)
-    }
-  }
+		try {
+			const summary = await this.callLLM(
+				summaryMessages,
+				{
+					maxTokens: this.config.deepseek.summaryMaxTokens,
+					temperature: 0.2,
+				},
+				`summary:${sessionKey}`,
+			);
+			if (summary.usage) {
+				await this.store.recordUsage(summary.usage);
+			}
+			state.summary = summary.text;
+			state.history = state.history.slice(-Math.floor(this.config.maxContextMessages / 2));
+		} catch (err) {
+			this.logger.warn('生成摘要失败，将跳过：%s', err);
+		}
+	}
 
-  private async callLLM(
-    messages: ChatMessage[],
-    options: { maxTokens?: number; temperature?: number; model?: string } | undefined,
-    context: string,
-  ) {
-    if (this.config.logPrompts) {
-      this.logger.info('LLM prompt[%s]: %s', context, JSON.stringify(messages))
-    }
-    const result = await this.deepseek.chat(messages, options)
-    if (this.config.logResponses) {
-      this.logger.info('LLM response[%s]: %s', context, result.text)
-    }
-    return result
-  }
+	private async callLLM(
+		messages: ChatMessage[],
+		options: { maxTokens?: number; temperature?: number; model?: string } | undefined,
+		context: string,
+	) {
+		if (this.config.logPrompts) {
+			this.logger.info('LLM prompt[%s]: %s', context, JSON.stringify(messages));
+		}
+		const result = await this.deepseek.chat(messages, options);
+		if (this.config.logResponses) {
+			this.logger.info('LLM response[%s]: %s', context, result.text);
+		}
+		return result;
+	}
 }
