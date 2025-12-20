@@ -56,6 +56,8 @@ export function loadConfig(logger: Logger): BotConfig {
     maxContextMessages: toNumber(process.env.MAX_CONTEXT_MESSAGES, 12),
     summaryTrigger: toNumber(process.env.SUMMARY_TRIGGER, 10),
     allowGroupPlainText: process.env.ALLOW_GROUP_PLAIN === 'true',
+    logPrompts: process.env.LOG_PROMPTS === 'true',
+    logResponses: process.env.LOG_RESPONSES === 'true',
     rateLimit: {
       userPerMinute: toNumber(process.env.USER_RATE_LIMIT, 8),
       groupPerMinute: toNumber(process.env.GROUP_RATE_LIMIT, 40),

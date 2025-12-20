@@ -56,6 +56,8 @@ export interface BotConfig {
   summaryTrigger: number
   allowGroupPlainText: boolean
   rateLimit: RateLimitConfig
+  logPrompts: boolean
+  logResponses: boolean
   personaPresets: Record<string, string>
 }
 

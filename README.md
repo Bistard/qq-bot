@@ -48,6 +48,7 @@
 - `DEEPSEEK_API_KEY`（必填）、`DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`。
 - `ONEBOT_WS_URL`（默认 `ws://napcat:3001`）、`BOT_SELF_ID`、`ONEBOT_ACCESS_TOKEN`（若有）、`ONEBOT_RECONNECT_MS`。
 - `ADMIN_IDS`、`WHITELIST_MODE`、`BLOCKED_PATTERNS`、`USER_RATE_LIMIT` 等控制项见 `.env.example`。
+- `LOG_PROMPTS` / `LOG_RESPONSES` 控制是否在日志中打印完整提示词与模型回复（默认不打印）。
 
 ## 运行时行为
 - 群聊需 @，否则忽略（除非 `ALLOW_GROUP_PLAIN=true`）；私聊直接响应。

@@ -38,7 +38,7 @@ export class ConversationManager {
     state.history.push({ role: 'user', content: userText })
 
     if (state.history.length > this.config.summaryTrigger) {
-      await this.summarize(state)
+      await this.summarize(sessionKey, state)
     }
 
     const messages: ChatMessage[] = [{ role: 'system', content: this.config.deepseek.systemPrompt }]
@@ -54,7 +54,7 @@ export class ConversationManager {
     const recent = state.history.slice(-this.config.maxContextMessages)
     messages.push(...recent)
 
-    const result = await this.deepseek.chat(messages)
+    const result = await this.callLLM(messages, undefined, `reply:${sessionKey}`)
 
     state.history.push({ role: 'assistant', content: result.text })
     if (state.history.length > this.config.maxContextMessages * 2) {
@@ -70,7 +70,7 @@ export class ConversationManager {
     return result.text
   }
 
-  private async summarize(state: ConversationState) {
+  private async summarize(sessionKey: string, state: ConversationState) {
     const serialized = state.history
       .slice(-this.config.summaryTrigger)
       .map((item) => `${item.role}: ${item.content}`)
@@ -82,10 +82,14 @@ export class ConversationManager {
     ]
 
     try {
-      const summary = await this.deepseek.chat(summaryMessages, {
-        maxTokens: this.config.deepseek.summaryMaxTokens,
-        temperature: 0.2,
-      })
+      const summary = await this.callLLM(
+        summaryMessages,
+        {
+          maxTokens: this.config.deepseek.summaryMaxTokens,
+          temperature: 0.2,
+        },
+        `summary:${sessionKey}`,
+      )
       if (summary.usage) {
         await this.store.recordUsage(summary.usage)
       }
@@ -94,5 +98,16 @@ export class ConversationManager {
     } catch (err) {
       this.logger.warn('生成摘要失败，将跳过：%s', err)
     }
+  }
+
+  private async callLLM(messages: ChatMessage[], options: { maxTokens?: number; temperature?: number } | undefined, context: string) {
+    if (this.config.logPrompts) {
+      this.logger.info('LLM prompt[%s]: %s', context, JSON.stringify(messages))
+    }
+    const result = await this.deepseek.chat(messages, options)
+    if (this.config.logResponses) {
+      this.logger.info('LLM response[%s]: %s', context, result.text)
+    }
+    return result
   }
 }
