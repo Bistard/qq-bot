@@ -40,6 +40,7 @@ export interface OneBotConfig {
 	selfId?: string;
 	token?: string;
 	reconnectIntervalMs: number;
+	actionTimeoutMs: number;
 }
 
 export interface BotConfig {

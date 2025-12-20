@@ -54,6 +54,7 @@ export function loadConfig(logger: Logger): BotConfig {
 			selfId: process.env.BOT_SELF_ID,
 			token: process.env.ONEBOT_ACCESS_TOKEN,
 			reconnectIntervalMs: toNumber(process.env.ONEBOT_RECONNECT_MS, 5000),
+			actionTimeoutMs: toNumber(process.env.ONEBOT_ACTION_TIMEOUT_MS, 10000),
 		},
 		deepseek: {
 			apiKey: process.env.DEEPSEEK_API_KEY || '',

@@ -13,6 +13,10 @@ export class OneBotClient extends EventEmitter {
 	private socket?: WebSocket;
 	private reconnectTimer?: NodeJS.Timeout;
 	private closed = false;
+	private pendingActions = new Map<
+		string,
+		{ resolve: () => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
+	>();
 
 	constructor(private config: OneBotConfig, private log: Logger) {
 		super();
@@ -44,27 +48,17 @@ export class OneBotClient extends EventEmitter {
 			this.emit('ready');
 		});
 
-		ws.on('message', (data) => {
-			try {
-				const parsed = JSON.parse(data.toString());
-				if (parsed?.post_type === 'message') {
-					const payload = this.parseMessage(parsed as OneBotMessageEvent);
-					if (payload) {
-						this.emit('message', payload);
-					}
-				}
-			} catch (err) {
-				this.log.warn('解析 OneBot 消息失败: %s', err);
-			}
-		});
+		ws.on('message', (data) => this.handleSocketMessage(data));
 
 		ws.on('close', (code) => {
 			this.log.warn('OneBot 连接关闭 code=%s', code);
+			this.rejectAllPending('OneBot 连接已关闭');
 			this.scheduleReconnect();
 		});
 
 		ws.on('error', (err) => {
 			this.log.warn('OneBot 连接错误: %s', err);
+			this.rejectAllPending('OneBot 连接异常');
 			this.scheduleReconnect();
 		});
 	}
@@ -136,12 +130,69 @@ export class OneBotClient extends EventEmitter {
 		await this.sendAction(action, params);
 	}
 
-	private async sendAction(action: string, params: Record<string, any>) {
-		const payload = JSON.stringify({ action, params, echo: `action-${Date.now()}` });
-		if (this.socket?.readyState === WebSocket.OPEN) {
-			this.socket.send(payload);
-		} else {
-			this.log.warn('发送失败，OneBot 未连接');
+	private handleSocketMessage(data: WebSocket.RawData) {
+		try {
+			const parsed = JSON.parse(data.toString());
+			if (parsed?.post_type === 'message') {
+				const payload = this.parseMessage(parsed as OneBotMessageEvent);
+				if (payload) {
+					this.emit('message', payload);
+				}
+				return;
+			}
+
+			if (parsed?.echo && this.pendingActions.has(parsed.echo)) {
+				const pending = this.pendingActions.get(parsed.echo)!;
+				clearTimeout(pending.timer);
+				this.pendingActions.delete(parsed.echo);
+				if (parsed.status === 'ok' || parsed.retcode === 0) {
+					pending.resolve();
+				} else {
+					const reason =
+						parsed.message ||
+						parsed.wording ||
+						`OneBot 动作失败: ${parsed.status ?? parsed.retcode ?? 'unknown'}`;
+					pending.reject(new Error(reason));
+				}
+				return;
+			}
+		} catch (err) {
+			this.log.warn('解析 OneBot 消息失败: %s', err);
 		}
+	}
+
+	private async sendAction(action: string, params: Record<string, any>) {
+		const echo = `action-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+		const payload = JSON.stringify({ action, params, echo });
+		const timeoutMs = this.config.actionTimeoutMs;
+
+		return new Promise<void>((resolve, reject) => {
+			if (this.socket?.readyState !== WebSocket.OPEN) {
+				return reject(new Error('发送失败，OneBot 未连接'));
+			}
+
+			const timer = setTimeout(() => {
+				this.pendingActions.delete(echo);
+				reject(new Error(`OneBot 动作超时: ${action}`));
+			}, timeoutMs);
+
+			this.pendingActions.set(echo, { resolve, reject, timer });
+
+			this.socket.send(payload, (err) => {
+				if (err) {
+					clearTimeout(timer);
+					this.pendingActions.delete(echo);
+					reject(err);
+				}
+			});
+		});
+	}
+
+	private rejectAllPending(reason: string) {
+		for (const [, pending] of this.pendingActions) {
+			clearTimeout(pending.timer);
+			pending.reject(new Error(reason));
+		}
+		this.pendingActions.clear();
 	}
 }
