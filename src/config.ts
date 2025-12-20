@@ -29,20 +29,20 @@ export function loadConfig(logger: Logger): BotConfig {
 	const allowlistSeed = new Set(parseList(process.env.ALLOWLIST));
 	const denylistSeed = new Set(parseList(process.env.DENYLIST));
 	const adminIds = new Set(parseList(process.env.ADMIN_IDS));
+	
 	const personaDir = process.env.PERSONA_DIR
 		? path.resolve(process.env.PERSONA_DIR)
 		: path.resolve(__dirname, '../personas');
 	const personaPresets = loadPersonaPresets(personaDir, logger);
-	const systemPrompt = process.env.SYSTEM_PROMPT || '';
-
-	try {
-		if (process.env.PERSONA_PRESETS) {
-			const parsed = JSON.parse(process.env.PERSONA_PRESETS);
-			Object.assign(personaPresets, parsed);
-		}
-	} catch (err) {
-		logger.warn('PERSONA_PRESETS 解析失败，使用默认值: %s', err);
+	const defaultPersonaEnv = process.env.DEFAULT_PERSONA?.trim();
+	const defaultPersona =
+		defaultPersonaEnv && personaPresets[defaultPersonaEnv]
+			? defaultPersonaEnv
+			: undefined;
+	if (defaultPersonaEnv && !defaultPersona) {
+		logger.warn('默认 persona %s 未找到，已忽略', defaultPersonaEnv);
 	}
+	const systemPrompt = process.env.SYSTEM_PROMPT || '';
 
 	return {
 		port: toNumber(process.env.PORT, 5140),
@@ -84,5 +84,6 @@ export function loadConfig(logger: Logger): BotConfig {
 			globalPerMinute: toNumber(process.env.GLOBAL_RATE_LIMIT, 120),
 		},
 		personaPresets,
+		defaultPersona,
 	};
 }

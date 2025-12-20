@@ -62,6 +62,7 @@ export interface BotConfig {
 	logPrompts: boolean;
 	logResponses: boolean;
 	personaPresets: Record<string, string>;
+	defaultPersona?: string;
 }
 
 export interface OneBotMessageSegment {

@@ -29,7 +29,7 @@ export class ConversationManager {
 	}
 
 	setPersona(sessionKey: string, persona: string | undefined) {
-		const state = this.sessions.get(sessionKey) ?? { history: [] };
+		const state = this.getOrCreateState(sessionKey);
 		state.persona = persona;
 		this.sessions.set(sessionKey, state);
 	}
@@ -38,12 +38,24 @@ export class ConversationManager {
 		return this.sessions.get(sessionKey)?.persona;
 	}
 
+	private getOrCreateState(sessionKey: string): ConversationState {
+		const existing = this.sessions.get(sessionKey);
+		if (existing) return existing;
+		const state: ConversationState = { history: [] };
+		const defaultPersona = this.config.defaultPersona;
+		if (defaultPersona && this.config.personaPresets[defaultPersona]) {
+			state.persona = defaultPersona;
+		}
+		this.sessions.set(sessionKey, state);
+		return state;
+	}
+
 	async reply(
 		sessionKey: string,
 		userText: string,
 		options?: { deep?: boolean },
 	): Promise<string> {
-		const state = this.sessions.get(sessionKey) ?? { history: [] };
+		const state = this.getOrCreateState(sessionKey);
 		const deepMode = options?.deep ?? false;
 
 		state.history.push({ role: 'user', content: userText });
