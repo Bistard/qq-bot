@@ -32,6 +32,13 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
     return '✅ 已重置本会话的上下文'
   })
 
+  registry.register('deep', async ({ conversations, payload }, args) => {
+    const question = args.join(' ').trim()
+    if (!question) return '用法：/deep <问题>'
+    const key = buildChannelKey(payload)
+    return conversations.reply(key, question, { deep: true })
+  })
+
   registry.register('persona', ({ config, conversations, payload }, args) => {
     const name = args[0]
     if (!name) {
@@ -109,6 +116,7 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
       `🤖 ${config.botName} 指令：`,
       '/help 查看帮助',
       '/reset 重置上下文',
+      '/deep <问题> 深度思考并回答',
       '/persona <name> 切换人格',
       '/usage 查看用量',
       '管理员：/config /allow /deny /status /mute-on /mute-off',

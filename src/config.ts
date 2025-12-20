@@ -48,6 +48,7 @@ export function loadConfig(logger: Logger): BotConfig {
       apiKey: process.env.DEEPSEEK_API_KEY || '',
       baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
       model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      reasonerModel: process.env.DEEPSEEK_REASONER_MODEL || 'deepseek-reasoner',
       temperature: toNumber(process.env.DEEPSEEK_TEMPERATURE, 0.8),
       maxTokens: toNumber(process.env.DEEPSEEK_MAX_TOKENS, 2048),
       summaryMaxTokens: toNumber(process.env.DEEPSEEK_SUMMARY_TOKENS, 512),

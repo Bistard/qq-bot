@@ -156,7 +156,10 @@ async function handleMessage(
     if (!name) return
     const result = await commands.execute(name, { config, store, conversations, payload }, args)
     if (result) {
-      await onebot.sendText(event, result, { quote: true })
+      const parts = chunkMessage(result)
+      for (const part of parts) {
+        await onebot.sendText(event, part, { quote: true })
+      }
     }
     return
   }

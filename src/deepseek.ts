@@ -1,19 +1,25 @@
 import { ChatMessage, DeepSeekConfig, Usage } from './types'
 
 export interface ILLMClient {
-  chat(messages: ChatMessage[], options?: { maxTokens?: number; temperature?: number }): Promise<{ text: string; usage?: Usage }>
+  chat(
+    messages: ChatMessage[],
+    options?: { maxTokens?: number; temperature?: number; model?: string },
+  ): Promise<{ text: string; usage?: Usage }>
 }
 
 export class DeepseekClient implements ILLMClient {
   constructor(private config: DeepSeekConfig) {}
 
-  async chat(messages: ChatMessage[], options?: { maxTokens?: number; temperature?: number }): Promise<{ text: string; usage?: Usage }> {
+  async chat(
+    messages: ChatMessage[],
+    options?: { maxTokens?: number; temperature?: number; model?: string },
+  ): Promise<{ text: string; usage?: Usage }> {
     if (!this.config.apiKey) {
       throw new Error('DEEPSEEK_API_KEY 未设置')
     }
 
     const body = {
-      model: this.config.model,
+      model: options?.model || this.config.model,
       messages,
       max_tokens: options?.maxTokens ?? this.config.maxTokens,
       temperature: options?.temperature ?? this.config.temperature,

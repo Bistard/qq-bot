@@ -26,6 +26,7 @@ export interface DeepSeekConfig {
   apiKey: string
   baseUrl: string
   model: string
+  reasonerModel: string
   temperature: number
   maxTokens: number
   summaryMaxTokens: number

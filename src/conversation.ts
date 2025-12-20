@@ -33,8 +33,9 @@ export class ConversationManager {
     return this.sessions.get(sessionKey)?.persona
   }
 
-  async reply(sessionKey: string, userText: string): Promise<string> {
+  async reply(sessionKey: string, userText: string, options?: { deep?: boolean }): Promise<string> {
     const state = this.sessions.get(sessionKey) ?? { history: [] }
+    const deepMode = options?.deep ?? false
 
     state.history.push({ role: 'user', content: userText })
 
@@ -56,10 +57,26 @@ export class ConversationManager {
       messages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION })
     }
 
+    if (deepMode) {
+      messages.push({
+        role: 'system',
+        content: '请进行深入思考：先梳理背景与关键信息，再分步骤推理，给出原因、方案与利弊，最后总结明确结论。',
+      })
+    }
+
     const recent = state.history.slice(-this.config.maxContextMessages)
     messages.push(...recent)
 
-    const result = await this.callLLM(messages, undefined, `reply:${sessionKey}`)
+    const llmOptions = deepMode
+      ? {
+          maxTokens: this.config.deepseek.maxTokens,
+          temperature: Math.max(this.config.deepseek.temperature - 0.3, 0),
+          model: this.config.deepseek.reasonerModel || this.config.deepseek.model,
+        }
+      : undefined
+
+    const context = deepMode ? `reply:deep:${sessionKey}` : `reply:${sessionKey}`
+    const result = await this.callLLM(messages, llmOptions, context)
 
     state.history.push({ role: 'assistant', content: result.text })
     if (state.history.length > this.config.maxContextMessages * 2) {
@@ -108,7 +125,11 @@ export class ConversationManager {
     }
   }
 
-  private async callLLM(messages: ChatMessage[], options: { maxTokens?: number; temperature?: number } | undefined, context: string) {
+  private async callLLM(
+    messages: ChatMessage[],
+    options: { maxTokens?: number; temperature?: number; model?: string } | undefined,
+    context: string,
+  ) {
     if (this.config.logPrompts) {
       this.logger.info('LLM prompt[%s]: %s', context, JSON.stringify(messages))
     }
