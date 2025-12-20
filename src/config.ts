@@ -20,7 +20,7 @@ export function loadConfig(logger: Logger): BotConfig {
   const baseSystemPrompt =
     process.env.SYSTEM_PROMPT || DEFAULT_PERSONAS['default']
   const systemPrompt =
-    forcePlainText && !baseSystemPrompt.includes(PLAIN_TEXT_INSTRUCTION)
+    forcePlainText
       ? `${baseSystemPrompt.trim()} ${PLAIN_TEXT_INSTRUCTION}`
       : baseSystemPrompt
 

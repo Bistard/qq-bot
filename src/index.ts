@@ -180,11 +180,13 @@ async function handleMessage(
   if (!cleaned) return
 
   try {
-    const reply = await locks.run(buildChannelKey(message), () => conversations.reply(buildChannelKey(message), cleaned))
-    const parts = chunkMessage(reply)
-    for (const part of parts) {
-      await onebot.sendText(event, part, { quote: true })
-    }
+    await locks.run(channelKey, async () => {
+      const reply = await conversations.reply(channelKey, cleaned)
+      const parts = chunkMessage(reply)
+      for (const part of parts) {
+        await onebot.sendText(event, part, { quote: true })
+      }
+    })
   } catch (err) {
     logger.warn('处理消息失败: %s', err)
     await onebot.sendText(event, '调用 AI 失败，请稍后重试或联系管理员。', { quote: true })
