@@ -7,7 +7,6 @@ services:
     environment:
       - NAPCAT_UID=${NAPCAT_UID:-1000}
       - NAPCAT_GID=${NAPCAT_GID:-1000}
-      - MODE=koishi
     ports:
       - '3001:3001'
       - '6099:6099'
@@ -15,11 +14,11 @@ services:
       - ./napcat/config:/app/napcat/config
       - ./ntqq:/app/.config/QQ
     networks:
-      - koishi_net
+      - bot_net
 
   bot:
     build: .
-    container_name: koishi-bot
+    container_name: qq-bot
     restart: always
     env_file: .env
     depends_on:
@@ -29,12 +28,11 @@ services:
       - PORT=${PORT:-5140}
     volumes:
       - ./data:/app/data
-      - ./koishi.yml:/app/koishi.yml:ro
     ports:
       - '${PORT:-5140}:5140'
     networks:
-      - koishi_net
+      - bot_net
 
 networks:
-  koishi_net:
+  bot_net:
     driver: bridge
