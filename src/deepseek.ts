@@ -61,6 +61,11 @@ export class DeepseekClient implements ILLMClient {
 					completionTokens: data?.usage?.completion_tokens ?? 0,
 				},
 			};
+		} catch (err) {
+			if ((err as any)?.name === 'AbortError') {
+				throw new Error(`DeepSeek 请求超时 (>${this.config.timeoutMs}ms)`);
+			}
+			throw err;
 		} finally {
 			clearTimeout(timeout);
 		}

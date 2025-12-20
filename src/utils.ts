@@ -37,6 +37,8 @@ export function chunkMessage(text: string, size = 900): string[] {
 		chunks.push(current.slice(0, size));
 		current = current.slice(size);
 	}
-	if (current.length) chunks.push(current);
+	if (current.length) {
+		chunks.push(current);
+	}
 	return chunks;
 }

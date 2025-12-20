@@ -201,8 +201,10 @@ async function handleMessage(
 			}
 		});
 	} catch (err) {
-		logger.warn('处理消息失败: %s', err);
-		await onebot.sendText(event, '调用 AI 失败，请稍后重试或联系管理员。', { quote: true });
+		const errorMessage = err instanceof Error ? err.stack || err.message : String(err);
+		const responseText = `处理消息失败：${errorMessage}`;
+		logger.warn(responseText);
+		await onebot.sendText(event, responseText, { quote: true });
 	}
 }
 
