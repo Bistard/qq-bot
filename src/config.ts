@@ -2,7 +2,7 @@ import path from 'path';
 import { BotConfig } from './types';
 import { Logger } from './logger';
 import { parseList, parsePatterns, toNumber } from './utils';
-import { PLAIN_TEXT_INSTRUCTION } from './constants';
+import { PLAIN_TEXT_PROMPT } from './constants';
 
 const DEFAULT_PERSONAS: Record<string, string> = {
 	default:
@@ -20,7 +20,7 @@ export function loadConfig(logger: Logger): BotConfig {
 	const forcePlainText = process.env.DEEPSEEK_FORCE_PLAIN === 'true';
 	const baseSystemPrompt = process.env.SYSTEM_PROMPT || DEFAULT_PERSONAS['default'];
 	const systemPrompt = forcePlainText
-		? `${baseSystemPrompt.trim()} ${PLAIN_TEXT_INSTRUCTION}`
+		? `${baseSystemPrompt.trim()} ${PLAIN_TEXT_PROMPT}`
 		: baseSystemPrompt;
 
 	try {

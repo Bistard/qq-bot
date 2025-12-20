@@ -2,7 +2,7 @@ import { IStore } from './store';
 import { BotConfig, ChatMessage } from './types';
 import { ILLMClient } from './deepseek';
 import { Logger } from './logger';
-import { PLAIN_TEXT_INSTRUCTION } from './constants';
+import { FAKE_DEEP_THINK_PROMPT, PLAIN_TEXT_PROMPT } from './constants';
 
 interface ConversationState {
 	history: ChatMessage[];
@@ -65,14 +65,13 @@ export class ConversationManager {
 		}
 
 		if (this.config.deepseek.forcePlainText) {
-			messages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION });
+			messages.push({ role: 'system', content: PLAIN_TEXT_PROMPT });
 		}
 
 		if (deepMode) {
 			messages.push({
 				role: 'system',
-				content:
-					'请进行深入思考：先梳理背景与关键信息，再分步骤推理，给出原因、方案与利弊，最后总结明确结论。',
+				content: FAKE_DEEP_THINK_PROMPT,
 			});
 		}
 
@@ -117,7 +116,7 @@ export class ConversationManager {
 			},
 		];
 		if (this.config.deepseek.forcePlainText) {
-			summaryMessages.push({ role: 'system', content: PLAIN_TEXT_INSTRUCTION });
+			summaryMessages.push({ role: 'system', content: PLAIN_TEXT_PROMPT });
 		}
 		summaryMessages.push({ role: 'user', content: serialized });
 
