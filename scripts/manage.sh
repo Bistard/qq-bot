@@ -11,6 +11,7 @@ usage() {
   restart  启动/重启全部服务 (docker compose up -d)
   rebuild  重新构建镜像并重启 (docker compose up -d --build)
   napcat-logs  实时查看 NapCat 日志 (docker compose logs -f napcat)
+  bot-logs    实时查看 Bot 日志 (docker compose logs -f bot)
 EOF
 }
 
@@ -27,6 +28,9 @@ case "$cmd" in
     ;;
   napcat-logs)
     docker compose logs -f napcat
+    ;;
+  bot-logs)
+    docker compose logs -f bot
     ;;
   *)
     usage
