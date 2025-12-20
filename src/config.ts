@@ -1,21 +1,38 @@
 import path from 'path';
+import fs from 'fs';
 import { BotConfig } from './types';
 import { Logger } from './logger';
 import { parseList, parsePatterns, toNumber } from './utils';
-import { PLAIN_TEXT_PROMPT } from './constants';
 
-const DEFAULT_PERSONAS: Record<string, string> = {
-	default: '你是一个由 DeepSeek 模型驱动的 QQ 助手，回答要准确、简洁，默认使用中文，并在需要时给出简要步骤。',
-	friendly: '以轻松、温暖的口吻回答，适合日常闲聊，保持积极和礼貌。',
-	expert: '以专业技术顾问身份回答，结构化地给出原因、步骤和风险提示，避免无依据的内容。',
-	concise: '保持超简洁回答，能用一句话解决的绝不展开，必要时用列表呈现。',
-};
+function loadPersonaPresets(personaDir: string, logger: Logger): Record<string, string> {
+	const personas: Record<string, string> = {};
+	try {
+		const entries = fs.readdirSync(personaDir, { withFileTypes: true });
+		for (const entry of entries) {
+			if (!entry.isFile()) continue;
+			const ext = path.extname(entry.name).toLowerCase();
+			if (ext && ext !== '.txt') continue;
+			const personaName = ext ? entry.name.slice(0, -ext.length) : entry.name;
+			const content = fs.readFileSync(path.join(personaDir, entry.name), 'utf-8').trim();
+			if (content) personas[personaName] = content;
+		}
+		if (Object.keys(personas).length === 0) {
+			logger.warn('persona 目录 %s 中未找到有效的 persona 文件', personaDir);
+		}
+	} catch (err) {
+		logger.warn('读取 persona 目录 %s 失败，将使用空集合: %s', personaDir, err);
+	}
+	return personas;
+}
 
 export function loadConfig(logger: Logger): BotConfig {
 	const allowlistSeed = new Set(parseList(process.env.ALLOWLIST));
 	const denylistSeed = new Set(parseList(process.env.DENYLIST));
 	const adminIds = new Set(parseList(process.env.ADMIN_IDS));
-	const personaPresets = { ...DEFAULT_PERSONAS };
+	const personaDir = process.env.PERSONA_DIR
+		? path.resolve(process.env.PERSONA_DIR)
+		: path.resolve(__dirname, '../personas');
+	const personaPresets = loadPersonaPresets(personaDir, logger);
 	const systemPrompt = process.env.SYSTEM_PROMPT || '';
 
 	try {

@@ -15,6 +15,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
+COPY personas ./personas
 
 RUN mkdir -p /app/data
 EXPOSE 5140
