@@ -30,6 +30,7 @@ export interface DeepSeekConfig {
   maxTokens: number
   summaryMaxTokens: number
   systemPrompt: string
+  timeoutMs: number
 }
 
 export interface OneBotConfig {

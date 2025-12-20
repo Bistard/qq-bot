@@ -46,6 +46,7 @@ export function loadConfig(logger: Logger): BotConfig {
       systemPrompt:
         process.env.SYSTEM_PROMPT ||
         '你是 QQ 群的智能助手，保持礼貌、简洁，拒绝违法违规和敏感内容，必要时提醒用户风险。',
+      timeoutMs: toNumber(process.env.DEEPSEEK_TIMEOUT_MS, 30000),
     },
     admins: adminIds,
     allowlistSeed,

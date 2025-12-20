@@ -21,7 +21,7 @@ export class DeepseekClient implements ILLMClient {
     }
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
+    const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs)
 
     try {
       const response = await fetch(`${this.config.baseUrl}/v1/chat/completions`, {
