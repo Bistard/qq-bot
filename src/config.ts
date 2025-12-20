@@ -5,8 +5,7 @@ import { parseList, parsePatterns, toNumber } from './utils';
 import { PLAIN_TEXT_PROMPT } from './constants';
 
 const DEFAULT_PERSONAS: Record<string, string> = {
-	default:
-		'你是一个由 DeepSeek 模型驱动的 QQ 助手，回答要准确、简洁，默认使用中文，并在需要时给出简要步骤。',
+	default: '你是一个由 DeepSeek 模型驱动的 QQ 助手，回答要准确、简洁，默认使用中文，并在需要时给出简要步骤。',
 	friendly: '以轻松、温暖的口吻回答，适合日常闲聊，保持积极和礼貌。',
 	expert: '以专业技术顾问身份回答，结构化地给出原因、步骤和风险提示，避免无依据的内容。',
 	concise: '保持超简洁回答，能用一句话解决的绝不展开，必要时用列表呈现。',
@@ -17,11 +16,7 @@ export function loadConfig(logger: Logger): BotConfig {
 	const denylistSeed = new Set(parseList(process.env.DENYLIST));
 	const adminIds = new Set(parseList(process.env.ADMIN_IDS));
 	const personaPresets = { ...DEFAULT_PERSONAS };
-	const forcePlainText = process.env.DEEPSEEK_FORCE_PLAIN === 'true';
-	const baseSystemPrompt = process.env.SYSTEM_PROMPT || DEFAULT_PERSONAS['default'];
-	const systemPrompt = forcePlainText
-		? `${baseSystemPrompt.trim()} ${PLAIN_TEXT_PROMPT}`
-		: baseSystemPrompt;
+	const systemPrompt = process.env.SYSTEM_PROMPT || '';
 
 	try {
 		if (process.env.PERSONA_PRESETS) {
@@ -48,12 +43,12 @@ export function loadConfig(logger: Logger): BotConfig {
 			baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
 			model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
 			reasonerModel: process.env.DEEPSEEK_REASONER_MODEL || 'deepseek-reasoner',
+			forcePlainText: process.env.DEEPSEEK_FORCE_PLAIN === 'true',
 			temperature: toNumber(process.env.DEEPSEEK_TEMPERATURE, 0.8),
 			maxTokens: toNumber(process.env.DEEPSEEK_MAX_TOKENS, 2048),
 			summaryMaxTokens: toNumber(process.env.DEEPSEEK_SUMMARY_TOKENS, 512),
-			systemPrompt,
 			timeoutMs: toNumber(process.env.DEEPSEEK_TIMEOUT_MS, 30000),
-			forcePlainText,
+			systemPrompt,
 		},
 		admins: adminIds,
 		allowlistSeed,

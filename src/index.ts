@@ -93,8 +93,8 @@ async function bootstrap() {
 
 	onebot.on('ready', () => logger.info('OneBot 就绪，开始监听消息'));
 
-	onebot.on('message', async (payload) => {
-		await handleMessage(payload as IncomingPayload, {
+	onebot.on('message', async (payload: IncomingPayload) => {
+		await handleMessage(payload, {
 			config,
 			store,
 			conversations,
@@ -190,7 +190,9 @@ async function handleMessage(
 	}
 
 	const cleaned = cleanUserInput(message.rawText, message.segments, config.commandPrefix);
-	if (!cleaned) return;
+	if (!cleaned) {
+		return;
+	}
 
 	try {
 		await locks.run(channelKey, async () => {
