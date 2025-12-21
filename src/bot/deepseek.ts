@@ -1,4 +1,4 @@
-import { ChatMessage, DeepSeekConfig, Usage } from './types';
+import { ChatMessage, DeepSeekConfig, Usage } from '../common/types';
 
 export interface ILLMClient {
 	chat(

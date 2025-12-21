@@ -6,8 +6,8 @@ import {
 	OneBotMessageEvent,
 	OneBotMessageSegment,
 	ParsedMessage,
-} from './types';
-import { Logger } from './logger';
+} from '../common/types';
+import { Logger } from '../common/logger';
 
 export class OneBotClient extends EventEmitter {
 	private socket?: WebSocket;

@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
-import { Logger } from './logger';
-import { StoredState, Usage } from './types';
+import { Logger } from '../common/logger';
+import { StoredState, Usage } from '../common/types';
 
 export interface IStateStore {
 	init(): Promise<void>;

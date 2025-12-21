@@ -1,7 +1,7 @@
 import { ConversationManager } from './conversation';
-import { BotConfig, IncomingPayload } from './types';
-import { IStateStore } from './store';
-import { IMessageStore } from './message-store';
+import { BotConfig, IncomingPayload } from '../common/types';
+import { IStateStore } from '../database/state-store';
+import { IMessageStore } from '../database/message-store';
 
 export type CommandHandler = (
 	ctx: CommandContext,

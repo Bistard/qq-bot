@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { Logger } from './logger';
+import { Logger } from '../common/logger';
 
 export interface SessionMeta {
 	summary?: string;

@@ -1,19 +1,19 @@
 import http from 'http';
 import path from 'path';
 import { loadConfig } from './config';
-import { Logger } from './logger';
-import { createStateStore, IStateStore } from './store';
-import { DeepseekClient } from './deepseek';
-import { ConversationManager } from './conversation';
-import { OneBotClient } from './onebot';
-import { CommandRegistry, registerBuiltInCommands } from './commands';
-import { chunkMessage } from './utils';
-import { RateLimiter } from './limiter';
-import { LockManager } from './lock';
-import { IncomingPayload } from './types';
-import { openDatabase } from './db/client';
-import { NullSessionStore, SqliteSessionStore } from './session-store';
-import { IMessageStore, NullMessageStore, SqliteMessageStore } from './message-store';
+import { OneBotClient } from './adapters/onebot';
+import { CommandRegistry, registerBuiltInCommands } from './bot/commands';
+import { ConversationManager } from './bot/conversation';
+import { DeepseekClient } from './bot/deepseek';
+import { RateLimiter } from './common/limiter';
+import { Logger } from './common/logger';
+import { IncomingPayload } from './common/types';
+import { chunkMessage } from './common/utils';
+import { openDatabase } from './database/client';
+import { IMessageStore, SqliteMessageStore, NullMessageStore } from './database/message-store';
+import { SqliteSessionStore, NullSessionStore } from './database/session-store';
+import { IStateStore, createStateStore } from './database/state-store';
+import { LockManager } from './common/lock';
 
 function buildChannelKey(message: IncomingPayload['message']): string {
 	if (message.groupId) return `onebot:group:${message.groupId}`;

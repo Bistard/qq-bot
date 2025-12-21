@@ -1,8 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { BotConfig } from './types';
-import { Logger } from './logger';
-import { parseList, parsePatterns, toNumber } from './utils';
+import { Logger } from './common/logger';
+import { BotConfig } from './common/types';
+import { parseList, toNumber, parsePatterns } from './common/utils';
 
 function loadPersonaPresets(personaDir: string, logger: Logger): Record<string, string> {
 	const personas: Record<string, string> = {};

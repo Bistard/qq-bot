@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
-import { Logger } from '../logger';
+import { Logger } from '../common/logger';
 import { runMigrations } from './migrations';
 
 export function openDatabase(dbPath: string, logger: Logger): Database.Database {

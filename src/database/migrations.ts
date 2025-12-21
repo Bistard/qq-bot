@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { Logger } from '../logger';
+import { Logger } from '../common/logger';
 
 interface Migration {
 	id: string;

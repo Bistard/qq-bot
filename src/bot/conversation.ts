@@ -1,9 +1,9 @@
-import { IStateStore } from './store';
-import { BotConfig, ChatMessage } from './types';
+import { IStateStore } from '../database/state-store';
+import { BotConfig, ChatMessage } from '../common/types';
 import { ILLMClient } from './deepseek';
-import { Logger } from './logger';
-import { FAKE_DEEP_THINK_PROMPT, PLAIN_TEXT_PROMPT } from './constants';
-import { ISessionStore } from './session-store';
+import { Logger } from '../common/logger';
+import { FAKE_DEEP_THINK_PROMPT, PLAIN_TEXT_PROMPT } from '../common/constants';
+import { ISessionStore } from '../database/session-store';
 
 interface ConversationState {
 	history: ChatMessage[];
