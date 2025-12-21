@@ -21,7 +21,8 @@ function buildChannelKey(message: IncomingPayload['message']): string {
 }
 
 function isCommand(text: string, prefix: string): boolean {
-  return text.trim().startsWith(prefix)
+  const trimmed = text.trim()
+  return trimmed.toLowerCase().startsWith(prefix.toLowerCase())
 }
 
 function stripCommandPrefix(text: string, prefix: string): string {
@@ -34,11 +35,11 @@ function cleanUserInput(rawText: string, segments: any[], prefix: string): strin
       .filter((seg) => seg.type === 'text')
       .map((seg) => seg.data?.text ?? '')
     const joined = textParts.join('').trim()
-    if (joined.startsWith(prefix)) return stripCommandPrefix(joined, prefix)
+    if (isCommand(joined, prefix)) return stripCommandPrefix(joined, prefix)
     return joined
   }
   const trimmed = rawText.trim()
-  if (trimmed.startsWith(prefix)) return stripCommandPrefix(trimmed, prefix)
+  if (isCommand(trimmed, prefix)) return stripCommandPrefix(trimmed, prefix)
   return trimmed
 }
 

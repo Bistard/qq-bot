@@ -120,12 +120,13 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 
 	registry.register('help', ({ config }) => {
 		return [
-			`🤖 ${config.botName} 指令：`,
+			`🤖 ${config.botName} 指令（不区分大小写）：`,
 			'/help 查看帮助',
 			'/reset 重置上下文',
 			'/deep <问题> 深度思考并回答',
 			'/persona <name> 切换人格',
 			'/usage 查看用量',
+			'/search <关键词> [limit]',
 			'管理员：/config /allow /deny /status /mute-on /mute-off',
 		].join('\n');
 	});
