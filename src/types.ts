@@ -48,6 +48,9 @@ export interface BotConfig {
 	commandPrefix: string;
 	botName: string;
 	dataDir: string;
+	storageDriver: 'json' | 'sqlite';
+	sqlitePath?: string;
+	logChatHistory: boolean;
 	onebot: OneBotConfig;
 	deepseek: DeepSeekConfig;
 	admins: Set<string>;

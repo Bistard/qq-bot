@@ -1,6 +1,7 @@
 import { ConversationManager } from './conversation';
 import { BotConfig, IncomingPayload } from './types';
-import { IStore } from './store';
+import { IStateStore } from './store';
+import { IMessageStore } from './message-store';
 
 export type CommandHandler = (
 	ctx: CommandContext,
@@ -10,7 +11,8 @@ export type CommandHandler = (
 export interface CommandContext {
 	payload: IncomingPayload;
 	config: BotConfig;
-	store: IStore;
+	store: IStateStore;
+	messageStore: IMessageStore;
 	conversations: ConversationManager;
 }
 
@@ -31,7 +33,7 @@ export class CommandRegistry {
 export function registerBuiltInCommands(registry: CommandRegistry) {
 	registry.register('reset', async ({ conversations, payload }) => {
 		const key = buildChannelKey(payload);
-		conversations.reset(key);
+		await conversations.reset(key);
 		return '✅ 已重置本会话的上下文';
 	});
 
@@ -42,7 +44,7 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 		return conversations.reply(key, question, { deep: true });
 	});
 
-	registry.register('persona', ({ config, conversations, payload }, args) => {
+	registry.register('persona', async ({ config, conversations, payload }, args) => {
 		const name = args[0];
 		if (!name) {
 			return `可用人格：${Object.keys(config.personaPresets).join(
@@ -52,7 +54,7 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 		if (!config.personaPresets[name]) {
 			return `未找到人格预设 ${name}，可选：${Object.keys(config.personaPresets).join(', ')}`;
 		}
-		conversations.setPersona(buildChannelKey(payload), name);
+		await conversations.setPersona(buildChannelKey(payload), name);
 		return `已切换为人格：${name}`;
 	});
 
@@ -61,35 +63,35 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 		return `累计对话 ${usage.messages} 轮，提示 tokens=${usage.promptTokens}，回复 tokens=${usage.completionTokens}`;
 	});
 
-	registry.register('mute-on', ({ config, store, payload }) => {
+	registry.register('mute-on', async ({ config, store, payload }) => {
 		const userId = payload.message.userId;
 		if (!config.admins.has(userId)) return '仅管理员可用';
 		const key = buildChannelKey(payload);
-		store.mute(key);
+		await store.mute(key);
 		return '已在本频道静音机器人';
 	});
 
-	registry.register('mute-off', ({ config, store, payload }) => {
+	registry.register('mute-off', async ({ config, store, payload }) => {
 		const userId = payload.message.userId;
 		if (!config.admins.has(userId)) return '仅管理员可用';
 		const key = buildChannelKey(payload);
-		store.unmute(key);
+		await store.unmute(key);
 		return '机器人已解除静音';
 	});
 
-	registry.register('allow', ({ config, store, payload }, args) => {
+	registry.register('allow', async ({ config, store, payload }, args) => {
 		if (!config.admins.has(payload.message.userId)) return '仅管理员可用';
 		const userId = args[0];
 		if (!userId) return '用法：/allow <userId>';
-		store.allow(userId);
+		await store.allow(userId);
 		return `已加入白名单：${userId}`;
 	});
 
-	registry.register('deny', ({ config, store, payload }, args) => {
+	registry.register('deny', async ({ config, store, payload }, args) => {
 		if (!config.admins.has(payload.message.userId)) return '仅管理员可用';
 		const userId = args[0];
 		if (!userId) return '用法：/deny <userId>';
-		store.deny(userId);
+		await store.deny(userId);
 		return `已加入黑名单：${userId}`;
 	});
 
@@ -126,6 +128,27 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 			'/usage 查看用量',
 			'管理员：/config /allow /deny /status /mute-on /mute-off',
 		].join('\n');
+	});
+
+	registry.register('search', async ({ config, messageStore, payload }, args) => {
+		if (!config.admins.has(payload.message.userId)) return '仅管理员可用';
+		if (!config.logChatHistory) return '未开启消息存档/检索';
+		if (!args.length) return '用法：/search <关键词> [limit]';
+		let limit = 10;
+		const lastArg = args[args.length - 1];
+		if (/^\d+$/.test(lastArg)) {
+			limit = Math.min(Math.max(parseInt(lastArg, 10), 1), 50);
+			args = args.slice(0, -1);
+		}
+		const keyword = args.join(' ').trim();
+		if (!keyword) return '用法：/search <关键词> [limit]';
+		const results = await messageStore.search(keyword, { limit });
+		if (!results.length) return '未找到匹配记录';
+		const lines = results.map((row) => {
+			const ts = new Date(row.ts).toLocaleString();
+			return `${ts} [${row.channelKey}] ${row.userId}: ${row.text}`;
+		});
+		return lines.join('\n');
 	});
 }
 

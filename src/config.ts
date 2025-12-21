@@ -45,6 +45,9 @@ export function loadConfig(logger: Logger): BotConfig {
 	const systemPrompt = process.env.SYSTEM_PROMPT || '';
 
 	return {
+		storageDriver: process.env.STORAGE_DRIVER === 'sqlite' ? 'sqlite' : 'json',
+		sqlitePath: process.env.SQLITE_PATH,
+		logChatHistory: process.env.LOG_CHAT_HISTORY !== 'false',
 		port: toNumber(process.env.PORT, 5140),
 		commandPrefix: process.env.BOT_PREFIX || '/',
 		botName: process.env.BOT_NAME || 'DeepSeek Bot',

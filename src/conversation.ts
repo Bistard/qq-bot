@@ -1,8 +1,9 @@
-import { IStore } from './store';
+import { IStateStore } from './store';
 import { BotConfig, ChatMessage } from './types';
 import { ILLMClient } from './deepseek';
 import { Logger } from './logger';
 import { FAKE_DEEP_THINK_PROMPT, PLAIN_TEXT_PROMPT } from './constants';
+import { ISessionStore } from './session-store';
 
 interface ConversationState {
 	history: ChatMessage[];
@@ -16,7 +17,8 @@ export class ConversationManager {
 	constructor(
 		private config: BotConfig,
 		private deepseek: ILLMClient,
-		private store: IStore,
+		private stateStore: IStateStore,
+		private sessionStore: ISessionStore,
 		private logger: Logger,
 	) {}
 
@@ -24,27 +26,35 @@ export class ConversationManager {
 		return this.sessions.size;
 	}
 
-	reset(sessionKey: string) {
+	async reset(sessionKey: string) {
 		this.sessions.delete(sessionKey);
+		await this.sessionStore.clear(sessionKey);
 	}
 
-	setPersona(sessionKey: string, persona: string | undefined) {
-		const state = this.getOrCreateState(sessionKey);
+	async setPersona(sessionKey: string, persona: string | undefined) {
+		const state = await this.getOrCreateState(sessionKey);
 		state.persona = persona;
 		this.sessions.set(sessionKey, state);
+		await this.sessionStore.savePersona(sessionKey, persona);
 	}
 
 	getPersona(sessionKey: string) {
 		return this.sessions.get(sessionKey)?.persona;
 	}
 
-	private getOrCreateState(sessionKey: string): ConversationState {
+	private async getOrCreateState(sessionKey: string): Promise<ConversationState> {
 		const existing = this.sessions.get(sessionKey);
 		if (existing) return existing;
 		const state: ConversationState = { history: [] };
-		const defaultPersona = this.config.defaultPersona;
-		if (defaultPersona && this.config.personaPresets[defaultPersona]) {
-			state.persona = defaultPersona;
+		const meta = await this.sessionStore.get(sessionKey);
+		if (meta?.summary) state.summary = meta.summary;
+		if (meta?.persona) {
+			state.persona = meta.persona;
+		} else {
+			const defaultPersona = this.config.defaultPersona;
+			if (defaultPersona && this.config.personaPresets[defaultPersona]) {
+				state.persona = defaultPersona;
+			}
 		}
 		this.sessions.set(sessionKey, state);
 		return state;
@@ -55,7 +65,7 @@ export class ConversationManager {
 		userText: string,
 		options?: { deep?: boolean },
 	): Promise<string> {
-		const state = this.getOrCreateState(sessionKey);
+		const state = await this.getOrCreateState(sessionKey);
 		const deepMode = options?.deep ?? false;
 
 		state.history.push({ role: 'user', content: userText });
@@ -109,7 +119,7 @@ export class ConversationManager {
 		this.sessions.set(sessionKey, state);
 
 		if (result.usage) {
-			await this.store.recordUsage(result.usage);
+			await this.stateStore.recordUsage(result.usage);
 		}
 
 		return result.text;
@@ -142,9 +152,10 @@ export class ConversationManager {
 				`summary:${sessionKey}`,
 			);
 			if (summary.usage) {
-				await this.store.recordUsage(summary.usage);
+				await this.stateStore.recordUsage(summary.usage);
 			}
 			state.summary = summary.text;
+			await this.sessionStore.saveSummary(sessionKey, summary.text);
 			state.history = state.history.slice(-Math.floor(this.config.maxContextMessages / 2));
 		} catch (err) {
 			this.logger.warn('生成摘要失败，将跳过：%s', err);

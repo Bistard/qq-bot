@@ -61,10 +61,10 @@ npm start
 - `/deep <问题>` 深度思考并回答（默认走 `DEEPSEEK_REASONER_MODEL`）
 - `/persona <name>` 切换人格（default/friendly/expert/concise）
 - `/usage` 查看累计用量
-- 管理员：`/config` `/allow <id>` `/deny <id>` `/status` `/mute-on` `/mute-off`
+- 管理员：`/config` `/allow <id>` `/deny <id>` `/status` `/mute-on` `/mute-off` `/search <关键词> [limit]`
 
 ## 数据与运维
 
-- 持久化状态：`data/state.json`（白/黑名单、静音频道、累计用量）；会话上下文与限流为内存态，重启清零。
+- 持久化：支持 `STORAGE_DRIVER=sqlite`（默认路径 `DATA_DIR/bot.db`）或 `json`（`data/state.json`）。SQLite 模式下会持久化白/黑名单、静音、用量、会话摘要、消息历史（可检索）。
 - HTTP 端点：`GET /healthz`、`GET /status`（端口 `PORT`，默认 5140）。
 - 管理脚本：`scripts/manage.sh`（stop/restart/rebuild 等）。
