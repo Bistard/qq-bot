@@ -7,7 +7,7 @@ import { ConversationManager } from './bot/conversation';
 import { DeepseekClient } from './bot/deepseek';
 import { RateLimiter } from './common/limiter';
 import { Logger } from './common/logger';
-import { IncomingPayload } from './common/types';
+import { IncomingPayload, OneBotMessageSegment } from './common/types';
 import { chunkMessage } from './common/utils';
 import { openDatabase } from './database/client';
 import { IMessageStore, SqliteMessageStore, NullMessageStore } from './database/message-store';
@@ -29,7 +29,7 @@ function stripCommandPrefix(text: string, prefix: string): string {
 	return text.trim().slice(prefix.length).trim();
 }
 
-function cleanUserInput(rawText: string, segments: any[], prefix: string): string {
+function cleanUserInput(rawText: string, segments: OneBotMessageSegment[], prefix: string): string {
 	if (Array.isArray(segments) && segments.length) {
 		const textParts = segments
 			.filter((seg) => seg.type === 'text')
@@ -214,6 +214,10 @@ async function handleMessage(
 	if (patternHit) {
 		await onebot.sendText(event, '消息包含禁止内容，已拦截。', { quote: true });
 		return;
+	}
+
+	if (config.onebot.reactionEmojiId !== undefined) {
+		void onebot.reactToMessage(event, config.onebot.reactionEmojiId);
 	}
 
 	if (isCommand(text, config.commandPrefix)) {

@@ -41,6 +41,7 @@ export interface OneBotConfig {
 	token?: string;
 	reconnectIntervalMs: number;
 	actionTimeoutMs: number;
+	reactionEmojiId?: string;
 }
 
 export interface BotConfig {

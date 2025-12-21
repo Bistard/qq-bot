@@ -133,6 +133,18 @@ export class OneBotClient extends EventEmitter {
 		await this.sendAction(action, params);
 	}
 
+	async reactToMessage(target: OneBotMessageEvent, emojiId: string) {
+		if (!target.message_id) return;
+		try {
+			await this.sendAction('set_msg_emoji_like', {
+				message_id: target.message_id,
+				emoji_id: emojiId,
+			});
+		} catch (err) {
+			this.log.warn('设置消息回应表情失败: %s', err);
+		}
+	}
+
 	private handleSocketMessage(data: WebSocket.RawData) {
 		try {
 			const parsed = JSON.parse(data.toString());
