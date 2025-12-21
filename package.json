@@ -1,27 +1,36 @@
 {
-  "name": "qq-bot",
-  "version": "1.0.0",
-  "description": "QQ bot for NapCat/OneBot with DeepSeek integration (custom lightweight core)",
-  "main": "dist/index.js",
-  "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "lint": "tsc --noEmit"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "better-sqlite3": "^12.5.0",
-    "ws": "^8.18.0"
-  },
-  "devDependencies": {
-    "@types/node": "^25.0.3",
-    "@types/ws": "^8.5.12",
-    "@types/better-sqlite3": "^7.6.13",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
-  }
+	"name": "qq-bot",
+	"version": "1.0.0",
+	"description": "QQ bot for NapCat/OneBot with DeepSeek integration (custom lightweight core)",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc --project tsconfig.json",
+		"dev": "tsx watch src/index.ts",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint . --ext .ts,.tsx",
+		"lint:fix": "eslint . --ext .ts,.tsx --fix",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"check": "npm run typecheck && npm run lint && npm run format:check"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"better-sqlite3": "^12.5.0",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/node": "^25.0.3",
+		"@types/ws": "^8.5.12",
+		"@typescript-eslint/eslint-plugin": "^8.50.0",
+		"@typescript-eslint/parser": "^8.50.0",
+		"eslint": "^9.39.2",
+		"prettier": "^3.7.4",
+		"ts-node": "^10.9.2",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
 }
