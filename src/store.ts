@@ -124,21 +124,15 @@ class JsonStateStore implements IStateStore {
 }
 
 class SqliteStateStore implements IStateStore {
-  private statePath: string
-
   constructor(
     private db: Database.Database,
-    dataDir: string,
     private allowSeeds: Set<string>,
     private denySeeds: Set<string>,
     private logger: Logger,
-  ) {
-    this.statePath = path.join(dataDir, 'state.json')
-  }
+  ) {}
 
   async init() {
     this.seedFromEnv()
-    await this.importFromJson()
   }
 
   getUsage(): Usage {
@@ -264,54 +258,6 @@ class SqliteStateStore implements IStateStore {
       insert.run(user, 'deny', now)
     }
   }
-
-  private async importFromJson() {
-    if (!fs.existsSync(this.statePath)) return
-    const hasData = this.db.prepare(`SELECT 1 FROM state_acl LIMIT 1`).get()
-    if (hasData) return
-    try {
-      const raw = await fs.promises.readFile(this.statePath, 'utf-8')
-      const parsed = JSON.parse(raw) as StoredState
-      const now = Date.now()
-      const insertAcl = this.db.prepare(
-        `INSERT INTO state_acl (user_id, status, updated_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT(user_id) DO UPDATE SET status=excluded.status, updated_at=excluded.updated_at`,
-      )
-      for (const id of parsed.whitelist ?? []) {
-        insertAcl.run(id, 'allow', now)
-      }
-      for (const id of parsed.blacklist ?? []) {
-        insertAcl.run(id, 'deny', now)
-      }
-      const insertMuted = this.db.prepare(
-        `INSERT OR IGNORE INTO state_muted_channels (channel_key, updated_at) VALUES (?, ?)`,
-      )
-      for (const channel of parsed.mutedChannels ?? []) {
-        insertMuted.run(channel, now)
-      }
-      if (parsed.usage) {
-        this.db
-          .prepare(
-            `UPDATE state_usage_total
-             SET messages = @messages,
-                 prompt_tokens = @promptTokens,
-                 completion_tokens = @completionTokens,
-                 updated_at = @updatedAt
-             WHERE id = 1`,
-          )
-          .run({
-            messages: parsed.usage.messages ?? 0,
-            promptTokens: parsed.usage.promptTokens ?? 0,
-            completionTokens: parsed.usage.completionTokens ?? 0,
-            updatedAt: now,
-          })
-      }
-      this.logger.info('已从 state.json 导入数据到 SQLite')
-    } catch (err) {
-      this.logger.warn('导入 state.json 失败，将跳过: %s', err)
-    }
-  }
 }
 
 export function createStateStore(
@@ -326,7 +272,7 @@ export function createStateStore(
 ): IStateStore {
   if (driver === 'sqlite') {
     if (!options.db) throw new Error('SQLite store 需要提供 db 实例')
-    return new SqliteStateStore(options.db, options.dataDir, options.allowSeeds, options.denySeeds, options.logger)
+    return new SqliteStateStore(options.db, options.allowSeeds, options.denySeeds, options.logger)
   }
   return new JsonStateStore(options.dataDir, options.allowSeeds, options.denySeeds)
 }
