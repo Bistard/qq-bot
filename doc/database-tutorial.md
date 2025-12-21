@@ -8,20 +8,20 @@
 
 ## 0. 你需要知道的 4 个概念（超重要）
 
-1) **SQLite 就是一个文件**  
+1. **SQLite 就是一个文件**  
    默认在 `./data/bot.db`（宿主机路径）。Docker 会把 `./data` 挂载进容器 `/app/data`。
 
-2) **WAL 模式会产生 `-wal`/`-shm` 两个文件**  
+2. **WAL 模式会产生 `-wal`/`-shm` 两个文件**  
    你可能会看到：
-   - `data/bot.db`
-   - `data/bot.db-wal`
-   - `data/bot.db-shm`
-   这是正常的，不要手动删（尤其是机器人运行时）。
+    - `data/bot.db`
+    - `data/bot.db-wal`
+    - `data/bot.db-shm`
+      这是正常的，不要手动删（尤其是机器人运行时）。
 
-3) **“表”就是分类存储的结构**  
+3. **“表”就是分类存储的结构**  
    例如：`state_acl` 存白/黑名单，`msg_messages` 存聊天文本，`mem_sessions` 存会话摘要。
 
-4) **FTS5 是“全文搜索索引”**  
+4. **FTS5 是“全文搜索索引”**  
    机器人能 `/search`，靠的是 `msg_messages_fts`（虚拟表）来做关键词搜索。
 
 ---
@@ -40,6 +40,7 @@ DATA_DIR=/app/data
 ```
 
 说明：
+
 - `STORAGE_DRIVER=sqlite`：启用 SQLite；否则默认 `json`（写 `data/state.json`）。
 - `SQLITE_PATH`：容器内 DB 文件路径；你一般不用改。
 - `LOG_CHAT_HISTORY=true`：启用“消息存档 + 搜索”。关掉后 `/search` 会提示未开启。
@@ -203,8 +204,8 @@ WHERE id = 1;
 #### `mem_sessions`：每个会话的摘要与 persona
 
 - `session_key` 规则和代码一致：
-  - 群：`onebot:group:<groupId>`
-  - 私聊：`onebot:dm:<userId>`
+    - 群：`onebot:group:<groupId>`
+    - 私聊：`onebot:dm:<userId>`
 
 查看最近更新的会话摘要：
 
@@ -306,9 +307,9 @@ FTS 常用语法（只需记住这几个）：
 
 最简单三步：
 
-1) 开启 `LOG_CHAT_HISTORY=true`，并确保 `STORAGE_DRIVER=sqlite`
-2) 在群里发几条消息，让机器人回复几次
-3) 本地打开 sqlite3 执行：
+1. 开启 `LOG_CHAT_HISTORY=true`，并确保 `STORAGE_DRIVER=sqlite`
+2. 在群里发几条消息，让机器人回复几次
+3. 本地打开 sqlite3 执行：
 
 ```sql
 SELECT COUNT(*) FROM msg_messages;
@@ -332,6 +333,7 @@ SELECT COUNT(*) FROM mem_sessions;
 - `/search 关键词 20`（限制返回 20 条，最多 50）
 
 注意：
+
 - 必须 `LOG_CHAT_HISTORY=true`
 - 目前返回内容会包含：时间、channelKey、userId、文本
 
@@ -359,9 +361,9 @@ sqlite3 data/bot.db "VACUUM INTO 'data/bot-$(date +%F).db';"
 
 恢复就是“替换文件”：
 
-1) 停止 bot（强烈建议）
-2) 用备份文件覆盖 `data/bot.db`
-3) 再启动 bot
+1. 停止 bot（强烈建议）
+2. 用备份文件覆盖 `data/bot.db`
+3. 再启动 bot
 
 注意：如果你用的是 WAL 模式，恢复时确保同目录里不要残留旧的 `bot.db-wal`/`bot.db-shm`（停机后一般会自动处理；不确定就一起删掉再启动）。
 
@@ -404,14 +406,14 @@ WAL 模式正常现象。不要手动删除（尤其运行时）。
 
 如果你想熟悉数据库而不写一行代码，按这个顺序做：
 
-1) 启动机器人（SQLite 模式 + 开启消息存档）
-2) 群里随便聊几句
-3) 在宿主机执行 `sqlite3 data/bot.db`
-4) 依次跑：
-   - `.tables`
-   - `SELECT COUNT(*) FROM msg_messages;`
-   - `SELECT * FROM state_usage_total WHERE id=1;`
-   - `SELECT session_key, substr(summary,1,80) FROM mem_sessions LIMIT 5;`
-5) 在群里试 `/search 关键词 10`
+1. 启动机器人（SQLite 模式 + 开启消息存档）
+2. 群里随便聊几句
+3. 在宿主机执行 `sqlite3 data/bot.db`
+4. 依次跑：
+    - `.tables`
+    - `SELECT COUNT(*) FROM msg_messages;`
+    - `SELECT * FROM state_usage_total WHERE id=1;`
+    - `SELECT session_key, substr(summary,1,80) FROM mem_sessions LIMIT 5;`
+5. 在群里试 `/search 关键词 10`
 
 做到这一步，你就已经“会使用并理解这个项目的 SQLite”了。

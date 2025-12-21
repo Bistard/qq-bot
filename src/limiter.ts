@@ -6,7 +6,10 @@ export interface IRateLimiter {
 export class RateLimiter implements IRateLimiter {
 	private buckets = new Map<string, { count: number; resetAt: number }>();
 
-	constructor(private limit: number, private windowMs: number) {}
+	constructor(
+		private limit: number,
+		private windowMs: number,
+	) {}
 
 	allow(key: string): boolean {
 		if (!this.limit || this.limit <= 0) return true;

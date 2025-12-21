@@ -105,7 +105,7 @@ export class ConversationManager {
 					maxTokens: this.config.deepseek.maxTokens,
 					temperature: Math.max(this.config.deepseek.temperature - 0.3, 0),
 					model: this.config.deepseek.reasonerModel || this.config.deepseek.model,
-			  }
+				}
 			: undefined;
 
 		const context = deepMode ? `reply:deep:${sessionKey}` : `reply:${sessionKey}`;

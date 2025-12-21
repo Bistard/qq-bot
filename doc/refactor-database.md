@@ -444,10 +444,10 @@ CREATE INDEX IF NOT EXISTS idx_news_source_time ON news_items(source_id, fetched
 
 推荐主链路：
 
-1) 收到 OneBot message → 立刻落 `msg_messages`（可配置开关）
-2) 快速处理回复（LLM）
-3) 把重活（画像分析/网页抽取/摘要更新）塞进 `job_queue`
-4) worker（同进程也行）异步消费 job，更新 `facts/user_profiles/mem_sessions/doc_pages`
+1. 收到 OneBot message → 立刻落 `msg_messages`（可配置开关）
+2. 快速处理回复（LLM）
+3. 把重活（画像分析/网页抽取/摘要更新）塞进 `job_queue`
+4. worker（同进程也行）异步消费 job，更新 `facts/user_profiles/mem_sessions/doc_pages`
 
 这样可以保证响应快、可恢复、可追溯。
 
@@ -513,8 +513,8 @@ CREATE INDEX IF NOT EXISTS idx_news_source_time ON news_items(source_id, fetched
 
 - DB 文件位置建议：`./data/bot.db`（Compose 已挂卷 `./data:/app/data`）
 - 启用 WAL 时备份：
-  - 推荐使用 `VACUUM INTO 'backup.db'` 生成一致快照，再复制 `backup.db`
-  - 或停机复制 `bot.db` + `bot.db-wal` + `bot.db-shm`
+    - 推荐使用 `VACUUM INTO 'backup.db'` 生成一致快照，再复制 `backup.db`
+    - 或停机复制 `bot.db` + `bot.db-wal` + `bot.db-shm`
 - 定期清理：
-  - 消息保留期到期删除
-  - 大文本（网页正文）可按需保留或只留摘要
+    - 消息保留期到期删除
+    - 大文本（网页正文）可按需保留或只留摘要

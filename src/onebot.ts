@@ -18,7 +18,10 @@ export class OneBotClient extends EventEmitter {
 		{ resolve: () => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
 	>();
 
-	constructor(private config: OneBotConfig, private log: Logger) {
+	constructor(
+		private config: OneBotConfig,
+		private log: Logger,
+	) {
 		super();
 	}
 

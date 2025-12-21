@@ -29,16 +29,14 @@ export function loadConfig(logger: Logger): BotConfig {
 	const allowlistSeed = new Set(parseList(process.env.ALLOWLIST));
 	const denylistSeed = new Set(parseList(process.env.DENYLIST));
 	const adminIds = new Set(parseList(process.env.ADMIN_IDS));
-	
+
 	const personaDir = process.env.PERSONA_DIR
 		? path.resolve(process.env.PERSONA_DIR)
 		: path.resolve(__dirname, '../personas');
 	const personaPresets = loadPersonaPresets(personaDir, logger);
 	const defaultPersonaEnv = process.env.DEFAULT_PERSONA?.trim();
 	const defaultPersona =
-		defaultPersonaEnv && personaPresets[defaultPersonaEnv]
-			? defaultPersonaEnv
-			: undefined;
+		defaultPersonaEnv && personaPresets[defaultPersonaEnv] ? defaultPersonaEnv : undefined;
 	if (defaultPersonaEnv && !defaultPersona) {
 		logger.warn('默认 persona %s 未找到，已忽略', defaultPersonaEnv);
 	}

@@ -7,32 +7,37 @@
 ## 快速开始（Docker Compose，推荐）
 
 1. 复制并修改配置：
-   ```bash
-   cp .env.example .env
-   ```
-   必填/常用：
-   - `DEEPSEEK_API_KEY`（必填）
-   - `BOT_SELF_ID`（机器人 QQ 号，用于过滤自发消息与识别 @）
-   - `ADMIN_IDS`（逗号分隔）
-   - `ONEBOT_WS_URL`（默认 `ws://napcat:3001`，容器内地址）
-   - `ONEBOT_ACCESS_TOKEN`（NapCat 若开启 token 需一致）
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    必填/常用：
+    - `DEEPSEEK_API_KEY`（必填）
+    - `BOT_SELF_ID`（机器人 QQ 号，用于过滤自发消息与识别 @）
+    - `ADMIN_IDS`（逗号分隔）
+    - `ONEBOT_WS_URL`（默认 `ws://napcat:3001`，容器内地址）
+    - `ONEBOT_ACCESS_TOKEN`（NapCat 若开启 token 需一致）
 
 2. 启动 NapCat 并登录：
-   ```bash
-   docker compose up -d napcat
-   ```
-   打开 `http://<宿主机>:6099/webui` 扫码登录，并在 NapCat 中开启 OneBot WS 服务端（默认 3001，建议 `messagePostFormat=array`）。
+
+    ```bash
+    docker compose up -d napcat
+    ```
+
+    打开 `http://<宿主机>:6099/webui` 扫码登录，并在 NapCat 中开启 OneBot WS 服务端（默认 3001，建议 `messagePostFormat=array`）。
 
 3. 启动 Bot：
-   ```bash
-   docker compose up -d --build bot
-   docker compose logs -f bot
-   ```
+
+    ```bash
+    docker compose up -d --build bot
+    docker compose logs -f bot
+    ```
 
 4. 健康检查：
-   ```bash
-   curl http://localhost:5140/healthz
-   ```
+    ```bash
+    curl http://localhost:5140/healthz
+    ```
 
 ## 本地运行（开发）
 
@@ -44,6 +49,7 @@ npm run dev
 ```
 
 生产运行：
+
 ```bash
 npm run build
 npm start
