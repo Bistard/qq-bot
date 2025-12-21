@@ -176,7 +176,7 @@ export class OneBotClient extends EventEmitter {
 		}
 	}
 
-	private async sendAction(action: string, params: Record<string, any>) {
+	private async sendAction(action: string, params: Record<string, unknown>) {
 		const echo = `action-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 		const payload = JSON.stringify({ action, params, echo });
 		const timeoutMs = this.config.actionTimeoutMs;

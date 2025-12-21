@@ -84,7 +84,7 @@ export class SqliteMessageStore implements IMessageStore {
 	) {
 		const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100);
 		const baseConditions: string[] = [];
-		const baseParams: any[] = [];
+		const baseParams: Array<string | number> = [];
 
 		if (options?.channelKey) {
 			baseConditions.push('m.channel_key = ?');

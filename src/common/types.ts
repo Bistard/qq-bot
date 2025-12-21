@@ -71,7 +71,7 @@ export interface BotConfig {
 
 export interface OneBotMessageSegment {
 	type: string;
-	data: Record<string, any>;
+	data: Record<string, unknown>;
 }
 
 export interface OneBotMessageEvent {
