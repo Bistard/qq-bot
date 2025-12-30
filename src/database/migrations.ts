@@ -77,6 +77,31 @@ const MIGRATIONS: Migration[] = [
       );`,
 		],
 	},
+	{
+		id: '004_cost_log',
+		statements: [
+			`CREATE TABLE IF NOT EXISTS cost_usage_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts INTEGER NOT NULL,
+        model TEXT NOT NULL,
+        prompt_tokens INTEGER NOT NULL,
+        completion_tokens INTEGER NOT NULL,
+        total_tokens INTEGER NOT NULL,
+        latency_ms INTEGER,
+        channel_key TEXT,
+        group_id TEXT,
+        user_id TEXT,
+        ok INTEGER NOT NULL,
+        error TEXT,
+        estimated_cost REAL,
+        currency TEXT
+      );`,
+			`CREATE INDEX IF NOT EXISTS idx_cost_ts ON cost_usage_log(ts);`,
+			`CREATE INDEX IF NOT EXISTS idx_cost_model_ts ON cost_usage_log(model, ts);`,
+			`CREATE INDEX IF NOT EXISTS idx_cost_group_ts ON cost_usage_log(group_id, ts);`,
+			`CREATE INDEX IF NOT EXISTS idx_cost_user_ts ON cost_usage_log(user_id, ts);`,
+		],
+	},
 ];
 
 export function runMigrations(db: Database.Database, logger: Logger) {

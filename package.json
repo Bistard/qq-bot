@@ -1,6 +1,6 @@
 {
 	"name": "qq-bot",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "QQ bot for NapCat/OneBot with DeepSeek integration (custom lightweight core)",
 	"main": "dist/index.js",
 	"scripts": {

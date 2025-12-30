@@ -3,6 +3,13 @@ import fs from 'fs';
 import { Logger } from './common/logger';
 import { BotConfig } from './common/types';
 import { parseList, toNumber, parsePatterns } from './common/utils';
+import pkg from '../package.json';
+
+const parseOptionalNumber = (value?: string) => {
+	if (value === undefined) return undefined;
+	const num = Number(value);
+	return Number.isFinite(num) ? num : undefined;
+};
 
 function loadPersonaPresets(personaDir: string, logger: Logger): Record<string, string> {
 	const personas: Record<string, string> = {};
@@ -42,6 +49,8 @@ export function loadConfig(logger: Logger): BotConfig {
 	}
 	const systemPrompt = process.env.SYSTEM_PROMPT || '';
 
+	const costCurrency = process.env.COST_CURRENCY || 'CNY';
+
 	return {
 		storageDriver: process.env.STORAGE_DRIVER === 'sqlite' ? 'sqlite' : 'json',
 		sqlitePath: process.env.SQLITE_PATH,
@@ -70,6 +79,31 @@ export function loadConfig(logger: Logger): BotConfig {
 			timeoutMs: toNumber(process.env.DEEPSEEK_TIMEOUT_MS, 30000),
 			systemPrompt,
 		},
+		cost: {
+			currency: costCurrency,
+			defaultPrice: {
+				inputPer1M: toNumber(process.env.DEEPSEEK_PRICE_IN_PER_1M, 0),
+				outputPer1M: toNumber(process.env.DEEPSEEK_PRICE_OUT_PER_1M, 0),
+			},
+			reasonerPrice: {
+				inputPer1M: toNumber(process.env.DEEPSEEK_REASONER_PRICE_IN_PER_1M, 0),
+				outputPer1M: toNumber(process.env.DEEPSEEK_REASONER_PRICE_OUT_PER_1M, 0),
+			},
+			recentLimit: Math.min(Math.max(toNumber(process.env.COST_RECENT_N, 10), 1), 50),
+		},
+		balance: {
+			cacheMs: toNumber(process.env.DEEPSEEK_BALANCE_CACHE_MS, 300_000),
+			timeoutMs: toNumber(process.env.DEEPSEEK_BALANCE_TIMEOUT_MS, 8_000),
+		},
+		alerts: {
+			cooldownMs: Math.max(toNumber(process.env.ALERT_COOLDOWN_MS, 3_600_000), 60_000),
+			balanceLow: parseOptionalNumber(process.env.ALERT_BALANCE_LOW),
+			diskFreeBytes: parseOptionalNumber(process.env.ALERT_DISK_FREE_BYTES),
+			memFreeRatio: parseOptionalNumber(process.env.ALERT_MEM_FREE_RATIO),
+			errorRateThreshold: parseOptionalNumber(process.env.ALERT_ERROR_RATE),
+			errorRateWindowMinutes: Math.max(toNumber(process.env.ALERT_ERROR_WINDOW_MINUTES, 10), 1),
+			targetGroupId: process.env.ALERT_TARGET_GROUP_ID,
+		},
 		admins: adminIds,
 		allowlistSeed,
 		denylistSeed,
@@ -87,5 +121,6 @@ export function loadConfig(logger: Logger): BotConfig {
 		},
 		personaPresets,
 		defaultPersona,
+		appVersion: process.env.APP_VERSION || pkg.version || 'dev',
 	};
 }

@@ -35,6 +35,33 @@ export interface DeepSeekConfig {
 	forcePlainText: boolean;
 }
 
+export interface Pricing {
+	inputPer1M: number;
+	outputPer1M: number;
+}
+
+export interface CostConfig {
+	currency: string;
+	defaultPrice: Pricing;
+	reasonerPrice: Pricing;
+	recentLimit: number;
+}
+
+export interface BalanceConfig {
+	cacheMs: number;
+	timeoutMs: number;
+}
+
+export interface AlertConfig {
+	cooldownMs: number;
+	balanceLow?: number;
+	diskFreeBytes?: number;
+	memFreeRatio?: number;
+	errorRateThreshold?: number;
+	errorRateWindowMinutes: number;
+	targetGroupId?: string;
+}
+
 export interface OneBotConfig {
 	endpoint: string;
 	selfId?: string;
@@ -54,6 +81,9 @@ export interface BotConfig {
 	logChatHistory: boolean;
 	onebot: OneBotConfig;
 	deepseek: DeepSeekConfig;
+	cost: CostConfig;
+	balance: BalanceConfig;
+	alerts: AlertConfig;
 	admins: Set<string>;
 	allowlistSeed: Set<string>;
 	denylistSeed: Set<string>;
@@ -67,6 +97,7 @@ export interface BotConfig {
 	logResponses: boolean;
 	personaPresets: Record<string, string>;
 	defaultPersona?: string;
+	appVersion: string;
 }
 
 export interface OneBotMessageSegment {

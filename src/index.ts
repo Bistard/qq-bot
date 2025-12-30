@@ -13,7 +13,11 @@ import { openDatabase } from './database/client';
 import { IMessageStore, SqliteMessageStore, NullMessageStore } from './database/message-store';
 import { SqliteSessionStore, NullSessionStore } from './database/session-store';
 import { IStateStore, createStateStore } from './database/state-store';
+import { ICostStore, SqliteCostStore, NullCostStore } from './database/cost-store';
 import { LockManager } from './common/lock';
+import { StatusService } from './observability/status-service';
+import { DeepseekAccountClient } from './bot/deepseek-account';
+import { AlertManager } from './observability/alerts';
 
 function buildChannelKey(message: IncomingPayload['message']): string {
 	if (message.groupId) return `onebot:group:${message.groupId}`;
@@ -48,6 +52,7 @@ function startHealthServer(
 	botName: string,
 	store: IStateStore,
 	conversations: ConversationManager,
+	statusService: StatusService,
 	logger: Logger,
 ) {
 	const server = http.createServer((req, res) => {
@@ -60,15 +65,16 @@ function startHealthServer(
 			return res.end(JSON.stringify({ status: 'ok' }));
 		}
 		if (req.url === '/status') {
-			const usage = store.getUsage();
 			res.writeHead(200, { 'Content-Type': 'application/json' });
-			return res.end(
-				JSON.stringify({
-					bot: botName,
-					activeSessions: conversations.activeSessions,
-					usage,
-				}),
-			);
+			statusService
+				.publicPayload()
+				.then((payload) => res.end(JSON.stringify(payload)))
+				.catch((err) => {
+					logger.warn('获取 /status 失败: %s', err);
+					res.statusCode = 500;
+					res.end(JSON.stringify({ error: 'status unavailable' }));
+				});
+			return;
 		}
 		res.writeHead(404);
 		res.end();
@@ -78,6 +84,7 @@ function startHealthServer(
 
 async function bootstrap() {
 	const logger = new Logger('deepseek-bot');
+	const startTime = Date.now();
 	const config = loadConfig(logger);
 	const dbLogger = new Logger('sqlite');
 	const db =
@@ -103,9 +110,15 @@ async function bootstrap() {
 			? new SqliteMessageStore(db, new Logger('msglog'))
 			: new NullMessageStore();
 
+	const costStore: ICostStore =
+		config.storageDriver === 'sqlite' && db
+			? new SqliteCostStore(db, new Logger('cost'))
+			: new NullCostStore();
+
 	await stateStore.init();
 	await sessionStore.init();
 	await messageStore.init();
+	await costStore.init();
 
 	const deepseek = new DeepseekClient(config.deepseek);
 	const conversations = new ConversationManager(
@@ -113,11 +126,28 @@ async function bootstrap() {
 		deepseek,
 		stateStore,
 		sessionStore,
+		costStore,
 		logger,
 	);
+	const balanceClient = new DeepseekAccountClient(
+		config.deepseek,
+		config.balance.cacheMs,
+		config.balance.timeoutMs,
+		new Logger('balance'),
+	);
+	const statusService = new StatusService({
+		config,
+		startTime,
+		stateStore,
+		conversations,
+		costStore,
+		balanceClient,
+		dataDir: config.dataDir,
+		logger: new Logger('status'),
+	});
 	const locks = new LockManager();
 	const commands = new CommandRegistry();
-	registerBuiltInCommands(commands);
+	registerBuiltInCommands(commands, statusService);
 
 	const limiter = {
 		user: new RateLimiter(config.rateLimit.userPerMinute, 60_000),
@@ -126,6 +156,15 @@ async function bootstrap() {
 	};
 
 	const onebot = new OneBotClient(config.onebot, new Logger('onebot'));
+	const alertManager = new AlertManager({
+		config,
+		statusService,
+		costStore,
+		balanceClient,
+		onebot,
+		admins: config.admins,
+		logger: new Logger('alert'),
+	});
 
 	onebot.on('ready', () => logger.info('OneBot 就绪，开始监听消息'));
 
@@ -140,11 +179,13 @@ async function bootstrap() {
 			logger,
 			commands,
 			messageStore,
+			statusService,
 		});
 	});
 
 	onebot.start();
-	startHealthServer(config.port, config.botName, stateStore, conversations, logger);
+	alertManager.start();
+	startHealthServer(config.port, config.botName, stateStore, conversations, statusService, logger);
 	logger.info('机器人已启动');
 }
 
@@ -160,6 +201,7 @@ async function handleMessage(
 		logger: Logger;
 		commands: CommandRegistry;
 		messageStore: IMessageStore;
+		statusService: StatusService;
 	},
 ) {
 	const {
@@ -172,6 +214,7 @@ async function handleMessage(
 		logger,
 		commands,
 		messageStore,
+		statusService,
 	} = deps;
 	const { message, event } = payload;
 	const text = message.plainText.trim();
@@ -227,7 +270,14 @@ async function handleMessage(
 		try {
 			const result = await commands.execute(
 				name,
-				{ config, store: stateStore, conversations, payload, messageStore },
+				{
+					config,
+					store: stateStore,
+					conversations,
+					payload,
+					messageStore,
+					statusService,
+				},
 				args,
 			);
 			const botUserId = config.onebot.selfId || 'bot';
@@ -276,7 +326,9 @@ async function handleMessage(
 
 	try {
 		await locks.run(channelKey, async () => {
-			const reply = await conversations.reply(channelKey, cleaned);
+			const reply = await conversations.reply(channelKey, cleaned, {
+				meta: { channelKey, groupId: message.groupId, userId: message.userId },
+			});
 			const parts = chunkMessage(reply);
 			const botUserId = config.onebot.selfId || 'bot';
 			for (const part of parts) {

@@ -133,6 +133,16 @@ export class OneBotClient extends EventEmitter {
 		await this.sendAction(action, params);
 	}
 
+	async sendTextToUser(userId: string | number, text: string) {
+		const messageSegments: OneBotMessageSegment[] = [{ type: 'text', data: { text } }];
+		await this.sendAction('send_private_msg', { user_id: userId, message: messageSegments });
+	}
+
+	async sendTextToGroup(groupId: string | number, text: string) {
+		const messageSegments: OneBotMessageSegment[] = [{ type: 'text', data: { text } }];
+		await this.sendAction('send_group_msg', { group_id: groupId, message: messageSegments });
+	}
+
 	async reactToMessage(target: OneBotMessageEvent, emojiId: string) {
 		if (!target.message_id) return;
 		try {

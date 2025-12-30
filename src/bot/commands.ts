@@ -2,6 +2,7 @@ import { ConversationManager } from './conversation';
 import { BotConfig, IncomingPayload } from '../common/types';
 import { IStateStore } from '../database/state-store';
 import { IMessageStore } from '../database/message-store';
+import { StatusService } from '../observability/status-service';
 
 export type CommandHandler = (
 	ctx: CommandContext,
@@ -14,6 +15,7 @@ export interface CommandContext {
 	store: IStateStore;
 	messageStore: IMessageStore;
 	conversations: ConversationManager;
+	statusService?: StatusService;
 }
 
 export class CommandRegistry {
@@ -30,7 +32,7 @@ export class CommandRegistry {
 	}
 }
 
-export function registerBuiltInCommands(registry: CommandRegistry) {
+export function registerBuiltInCommands(registry: CommandRegistry, statusService?: StatusService) {
 	registry.register('reset', async ({ conversations, payload }) => {
 		const key = buildChannelKey(payload);
 		await conversations.reset(key);
@@ -41,7 +43,14 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 		const question = args.join(' ').trim();
 		if (!question) return '用法：/deep <问题>';
 		const key = buildChannelKey(payload);
-		return conversations.reply(key, question, { deep: true });
+		return conversations.reply(key, question, {
+			deep: true,
+			meta: {
+				channelKey: key,
+				groupId: payload.message.groupId,
+				userId: payload.message.userId,
+			},
+		});
 	});
 
 	registry.register('persona', async ({ config, conversations, payload }, args) => {
@@ -107,8 +116,11 @@ export function registerBuiltInCommands(registry: CommandRegistry) {
 		);
 	});
 
-	registry.register('status', ({ config, store, conversations, payload }) => {
+	registry.register('status', async ({ config, store, conversations, payload, statusService }, _args) => {
 		if (!config.admins.has(payload.message.userId)) return '仅管理员可用';
+		if (statusService) {
+			return statusService.buildText();
+		}
 		const usage = store.getUsage();
 		return (
 			`会话活跃数: ${conversations.activeSessions}\n` +

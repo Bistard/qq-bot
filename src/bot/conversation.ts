@@ -4,6 +4,13 @@ import { ILLMClient } from './deepseek';
 import { Logger } from '../common/logger';
 import { FAKE_DEEP_THINK_PROMPT, PLAIN_TEXT_PROMPT } from '../common/constants';
 import { ISessionStore } from '../database/session-store';
+import { ICostStore } from '../database/cost-store';
+
+interface CallMeta {
+	channelKey?: string;
+	groupId?: string;
+	userId?: string;
+}
 
 interface ConversationState {
 	history: ChatMessage[];
@@ -19,6 +26,7 @@ export class ConversationManager {
 		private deepseek: ILLMClient,
 		private stateStore: IStateStore,
 		private sessionStore: ISessionStore,
+		private costStore: ICostStore,
 		private logger: Logger,
 	) {}
 
@@ -63,10 +71,11 @@ export class ConversationManager {
 	async reply(
 		sessionKey: string,
 		userText: string,
-		options?: { deep?: boolean },
+		options?: { deep?: boolean; meta?: CallMeta },
 	): Promise<string> {
 		const state = await this.getOrCreateState(sessionKey);
 		const deepMode = options?.deep ?? false;
+		const meta = options?.meta;
 
 		state.history.push({ role: 'user', content: userText });
 
@@ -109,7 +118,10 @@ export class ConversationManager {
 			: undefined;
 
 		const context = deepMode ? `reply:deep:${sessionKey}` : `reply:${sessionKey}`;
-		const result = await this.callLLM(messages, llmOptions, context);
+		const result = await this.callLLM(messages, llmOptions, context, {
+			...meta,
+			modelHint: llmOptions?.model,
+		});
 
 		state.history.push({ role: 'assistant', content: result.text });
 		if (state.history.length > this.config.maxContextMessages * 2) {
@@ -166,14 +178,55 @@ export class ConversationManager {
 		messages: ChatMessage[],
 		options: { maxTokens?: number; temperature?: number; model?: string } | undefined,
 		context: string,
+		meta?: CallMeta & { modelHint?: string },
 	) {
+		const start = Date.now();
+		const model = options?.model || this.config.deepseek.model;
 		if (this.config.logPrompts) {
 			this.logger.info('LLM prompt[%s]: %s', context, JSON.stringify(messages));
 		}
-		const result = await this.deepseek.chat(messages, options);
-		if (this.config.logResponses) {
-			this.logger.info('LLM response[%s]: %s', context, result.text);
+		let error: Error | null = null;
+		let result: Awaited<ReturnType<ILLMClient['chat']>> | null = null;
+		try {
+			result = await this.deepseek.chat(messages, options);
+			if (this.config.logResponses) {
+				this.logger.info('LLM response[%s]: %s', context, result.text);
+			}
+			return result;
+		} catch (err) {
+			error = err as Error;
+			throw err;
+		} finally {
+			const end = Date.now();
+			const usage = result?.usage;
+			const promptTokens = usage?.promptTokens ?? 0;
+			const completionTokens = usage?.completionTokens ?? 0;
+			const totalTokens = promptTokens + completionTokens;
+			const isReasoner = model === this.config.deepseek.reasonerModel;
+			const pricing = isReasoner
+				? this.config.cost.reasonerPrice
+				: this.config.cost.defaultPrice;
+			const estimatedCost =
+				pricing.inputPer1M > 0 || pricing.outputPer1M > 0
+					? (promptTokens / 1_000_000) * pricing.inputPer1M +
+						(completionTokens / 1_000_000) * pricing.outputPer1M
+					: undefined;
+
+			await this.costStore.record({
+				ts: end,
+				model,
+				promptTokens,
+				completionTokens,
+				totalTokens,
+				latencyMs: end - start,
+				channelKey: meta?.channelKey,
+				groupId: meta?.groupId,
+				userId: meta?.userId,
+				ok: !error,
+				error: error ? error.message : undefined,
+				estimatedCost,
+				currency: estimatedCost !== undefined ? this.config.cost.currency : undefined,
+			});
 		}
-		return result;
 	}
 }
